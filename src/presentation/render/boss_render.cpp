@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 Krzysztof Sokołowski
 #include "presentation/render/boss_render.hpp"
+#include "presentation/render/player_skin.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -21,6 +22,13 @@ using namespace olduvai::systems;
 bool rgb_close(const Rgb& a, int r, int g, int b) {
     return std::abs(a.r - r) <= 8 && std::abs(a.g - g) <= 8 &&
            std::abs(a.b - b) <= 8;
+}
+
+static void victory_player(RenderTarget& t, const BossAssets& a, int sprite,
+                            float x, float y, bool left = false, int pose = 0) {
+    if (!draw_player_skin(t, x, y, left, pose) && sprite >= 0 &&
+        sprite < static_cast<int>(a.spr.size()))
+        blit_sprite(t, a.spr[static_cast<std::size_t>(sprite)], a.palette, x, y, left);
 }
 
 // Shared boss player render: body (death frames never flip; halo-tinted
@@ -44,9 +52,13 @@ void render_boss_player_fb(RenderTarget& t, const BossPlayerState& p,
     const float ppy = t.use_float_pos ? t.player_fy : static_cast<float>(p.y);
     if (p.sprite >= 0 && p.sprite < static_cast<int>(atlas.size())) {
         const bool flip = p.death_counter > 0 ? false : p.facing_left;
-        blit_sprite(t, atlas[static_cast<std::size_t>(p.sprite)],
-                    p.halo_flag > 0 ? halo_pal : player_pal,
-                    ppx + p.sprite_dx, ppy + p.sprite_dy, flip);
+        const int skin_pose = p.death_counter > 0 ? 7 :
+                              p.club_spr >= 0 ? 5 : p.sprite == 3 ? 4 :
+                              p.sprite == 28 ? 0 : 1 + (p.sprite % 3);
+        if (!draw_player_skin(t, ppx, ppy, p.facing_left, skin_pose))
+            blit_sprite(t, atlas[static_cast<std::size_t>(p.sprite)],
+                        p.halo_flag > 0 ? halo_pal : player_pal,
+                        ppx + p.sprite_dx, ppy + p.sprite_dy, flip);
     }
     if (p.club_spr >= 0 && p.club_spr < static_cast<int>(atlas.size()) &&
         p.death_counter == 0) {
@@ -321,7 +333,7 @@ void render_l2_victory_sprites(RenderTarget& t, const BossAssets& a,
     }
 
     // Player frozen, sprite 28 (standing) at current position.
-    blit_at(t, a.spr, 28, a.palette, p.x, p.y);
+    victory_player(t, a, 28, static_cast<float>(p.x), static_cast<float>(p.y));
 }
 
 void render_l2_victory_frame(RenderTarget& t, const BossAssets& a,
@@ -373,16 +385,16 @@ void render_l4_victory_sprites(RenderTarget& t, const BossAssets& a,
     if (boss.win_flag == 1) {
         // Phase 1: player standing, sprite 28 (no flip — EXE Game_EnqueueSprite
         // flag 0; boss_l4.py:628-630).
-        blit_at(t, a.spr, 28, a.palette, p.x, p.y);
+        victory_player(t, a, 28, static_cast<float>(p.x), static_cast<float>(p.y));
     } else if (boss.win_flag == 2) {
         // Phase 2: player rising, air sprite 3 (no flip — EXE flag 0;
         // boss_l4.py:634-636 blits unflipped).
-        blit_at(t, a.spr, 3, a.palette, p.x, p.y);
+        victory_player(t, a, 3, static_cast<float>(p.x), static_cast<float>(p.y), false, 4);
     } else if (boss.win_flag >= 3) {
         // Phase 3 onward: sprite 58 is the rider, at the dino's x.  `>= 3`: the
         // win_flag == 100 frame is the fade source and must still show the
         // rider (the reference never renders that frame).
-        blit_at(t, a.spr, 58, a.palette, boss.boss_x - 12, 119);
+        victory_player(t, a, 58, static_cast<float>(boss.boss_x - 12), 119, false, 4);
     }
 }
 
@@ -416,9 +428,9 @@ void render_l6_victory_frame(RenderTarget& t,
 
     constexpr int kFloorY = 160;
     if (p.y < kFloorY) {
-        blit_flip(t, a.spr, 3, a.palette, p.x, p.y, p.facing_left);
+        victory_player(t, a, 3, static_cast<float>(p.x), static_cast<float>(p.y), p.facing_left, 4);
     } else {
-        blit_at(t, a.spr, 28, a.palette, p.x, 167);
+        victory_player(t, a, 28, static_cast<float>(p.x), 167);
     }
 
     // Cycling defeat sprite at (208, 7).
@@ -444,11 +456,11 @@ void render_l6_victory_sprites(RenderTarget& t, const BossAssets& a,
         const float ppy =
             t.use_float_pos ? t.player_fy : static_cast<float>(p.y);
         if (3 < static_cast<int>(a.spr.size()))
-            blit_sprite(t, a.spr[3], a.palette, ppx, ppy, p.facing_left);
+            victory_player(t, a, 3, ppx, ppy, p.facing_left, 4);
     } else {
         // Landed: EXE pins the standing sprite at y=167 and never flips it,
         // so there is nothing to interpolate.
-        blit_at(t, a.spr, 28, a.palette, p.x, 167);
+        victory_player(t, a, 28, static_cast<float>(p.x), 167);
     }
     blit_at(t, a.spr, 51 + boss.cycle_idx, a.palette, 208, 7);
 }

@@ -43,6 +43,50 @@ constexpr Plan twice(const char* n, Fn2 f) { return {Route::TwoPass, n, f, nullp
 constexpr Plan no3x(const char* n) { return {Route::Scale3xFallback, n, nullptr, nullptr}; }
 constexpr Plan nearest() { return {Route::Nearest, "nearest", nullptr, nullptr}; }
 
+// A deliberately softer finish for the local storybook character mod.
+// Work in premultiplied colour so transparent sprite edges do not turn black.
+Pixels soft_scale(const Pixels& px, int w, int h, int scale) {
+    Pixels out = xbrz_scale(px, w, h, scale);
+    const int ow = w * scale, oh = h * scale;
+    const int radius = std::max(1, scale / 2);
+    std::vector<float> a(out.size()), b(out.size());
+    for (std::size_t i = 0; i < out.size(); i += 4) {
+        const float alpha = out[i + 3] / 255.0f;
+        for (int c = 0; c < 3; ++c) a[i + c] = out[i + c] * alpha;
+        a[i + 3] = out[i + 3];
+    }
+    for (int pass = 0; pass < 4; ++pass) {
+        const bool horizontal = (pass % 2) == 0;
+        const int lines = horizontal ? oh : ow;
+        const int length = horizontal ? ow : oh;
+        const auto offset = [=](int line, int p, int c) {
+            return (static_cast<std::size_t>(horizontal ? line : p) * ow +
+                    (horizontal ? p : line)) * 4 + c;
+        };
+        for (int line = 0; line < lines; ++line) {
+            for (int c = 0; c < 4; ++c) {
+                float sum = 0;
+                for (int p = -radius; p <= radius; ++p)
+                    sum += a[offset(line, std::clamp(p, 0, length - 1), c)];
+                for (int p = 0; p < length; ++p) {
+                    b[offset(line, p, c)] = sum / (2 * radius + 1);
+                    sum -= a[offset(line, std::max(0, p - radius), c)];
+                    sum += a[offset(line, std::min(length - 1, p + radius + 1), c)];
+                }
+            }
+        }
+        a.swap(b);
+    }
+    for (std::size_t i = 0; i < out.size(); i += 4) {
+        const float alpha = std::clamp(a[i + 3], 0.0f, 255.0f);
+        for (int c = 0; c < 3; ++c)
+            out[i + c] = static_cast<std::uint8_t>(std::clamp(
+                alpha > 0.5f ? a[i + c] * 255.0f / alpha : 0.0f, 0.0f, 255.0f));
+        out[i + 3] = static_cast<std::uint8_t>(alpha);
+    }
+    return out;
+}
+
 struct Scaler {
     const char* id;            // the --hd-profile and play.json value
     const char* label;         // the Options menu's name for it
@@ -63,6 +107,10 @@ constexpr Scaler kScalers[] = {
     {"xbrz", "xBRZ", false,
      {nativeN("xBRZ", xbrz_scale), nativeN("xBRZ", xbrz_scale), nativeN("xBRZ", xbrz_scale),
       nativeN("xBRZ", xbrz_scale), nativeN("xBRZ", xbrz_scale)}},
+    {"soft", "Soft illustration", false,
+     {nativeN("xBRZ + soft finish", soft_scale), nativeN("xBRZ + soft finish", soft_scale),
+      nativeN("xBRZ + soft finish", soft_scale), nativeN("xBRZ + soft finish", soft_scale),
+      nativeN("xBRZ + soft finish", soft_scale)}},
     {"mmpx", "MMPX", true,
      {native2("MMPX", mmpx_2x), no3x("MMPX"), twice("MMPX", mmpx_2x), nearest(), nearest()}},
     {"omniscale", "OmniScale", false,

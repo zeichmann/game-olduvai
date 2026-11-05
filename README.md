@@ -1,4 +1,15 @@
-# Olduvai
+# Żabol: Stone Age — an Olduvai mod
+
+This fork adds Akademia Oli's Żabol as an animated Stone Age hero and a softer
+`soft` HD graphics profile. The engine is based on
+[Krzysztof Sokołowski's Olduvai](https://github.com/ksokolowski/olduvai).
+
+After building, Windows users can run `mods/zabol/launch.cmd`.
+Place your own Prehistorik game files in `game_data/` first; game data, downloaded
+development libraries and build output are not included in this repository.
+Character artwork and generation notes are in `mods/zabol/`.
+
+## Upstream documentation
 
 <p align="center"><img src="assets/logo/olduvai-logo-1200.png" alt="Olduvai — fire-styled wordmark with the bone logo" width="440"></p>
 

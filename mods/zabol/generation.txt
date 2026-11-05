@@ -1,0 +1,28 @@
+Zabol: Stone Age character mod
+
+Generated using the built-in image_gen tool, then integrated into the HD renderer.
+References: AkademiaOli/public/games/wyspy-wiedzy/assets/akademia/zabol-run-0.webp
+and AkademiaOli/public/games/boulder-dash/images/island/zabol-player-v1.png.
+
+Main prompt:
+Create an eight-pose, transparent sprite sheet of the same friendly frog Zabol
+from the references as a Stone Age caveman. Preserve lime-green skin, glossy
+brown protruding eyes, pale-yellow muzzle, broad smile and cheerful personality.
+Replace pirate clothes and hat with a tawny leopard-fur tunic, brown fur shoulder
+strap and ivory bone pin, with bare green webbed feet and bare head. Smooth
+polished cartoon rendering; no pixel art. Four columns, two rows: idle, three
+walking poses, jump, empty-handed attack, climb, hurt/fall. All poses face right.
+No text, background, scenery, shadows or weapons (the engine renders the club).
+
+Cleanup prompt:
+Preserve the eight characters, identity, costume, poses and grid. Remove colored
+spray, speckles, noise and halos outside the silhouettes. Clean antialiased
+transparent boundaries; preserve internal skin and fur. No redesign or labels.
+
+Launch through the workspace's Uruchom Prehistorik.cmd. It sets
+OLDUVAI_PLAYER_SHEET to stone-age-sprites.png and selects soft HD at scale 6.
+Without that environment variable, the original player renderer is used.
+The soft profile uses xBRZ followed by a cached premultiplied-alpha soft finish.
+Physics, hitboxes and level data are unchanged.
+
+The repository-portable equivalent is mods/zabol/launch.cmd.

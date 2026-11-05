@@ -139,6 +139,13 @@ int main() {
         {"xbrz:5", 0x93cdfc192fa18e2full},    // native: the scaler takes the factor
         {"xbrz:6", 0x16dd7706c90d7860ull},
         {"xbrz:7", 0xfcdbc1028a146f9aull},
+        // Local soft profile, pinned on Windows/MSVC, 2026-11-05.
+        {"soft:2", 0xd133acb477b8b4b2ull},
+        {"soft:3", 0xcba321bd91646658ull},
+        {"soft:4", 0xf6d2156a9894f3d9ull},
+        {"soft:5", 0x4b0d901ef071383bull},
+        {"soft:6", 0x28515fc49100f705ull},
+        {"soft:7", 0xfcdbc1028a146f9aull},
         {"mmpx:2", 0x101f5befa0c421baull},
         {"mmpx:3", 0xc8fd78cc8b2c672full},    // no native 3x → scale3x
         {"mmpx:4", 0x6bcf631f031bee98ull},

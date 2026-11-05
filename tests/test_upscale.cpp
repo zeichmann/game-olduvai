@@ -77,6 +77,51 @@ TEST_CASE("upscale_rgba: scale 1 is identity") {
     CHECK(olduvai::enhance::upscale_rgba(px, 4, 4, 1, "omniscale") == px);
 }
 
+TEST_CASE("soft illustration preserves flat colours and removes high contrast steps") {
+    using olduvai::enhance::upscale_rgba;
+    std::vector<std::uint8_t> flat(8 * 8 * 4, 255);
+    for (std::size_t i = 0; i < flat.size(); i += 4) {
+        flat[i] = 40; flat[i + 1] = 140; flat[i + 2] = 70;
+    }
+    const auto solid = upscale_rgba(flat, 8, 8, 6, "soft");
+    for (std::size_t i = 0; i < solid.size(); i += 4) {
+        CHECK(solid[i] == 40); CHECK(solid[i + 1] == 140);
+        CHECK(solid[i + 2] == 70); CHECK(solid[i + 3] == 255);
+    }
+    const auto card = test_card();
+    const auto sharp = upscale_rgba(card, 4, 4, 6, "xbrz");
+    const auto soft = upscale_rgba(card, 4, 4, 6, "soft");
+    const auto variation = [](const auto& pixels) {
+        unsigned long long sum = 0;
+        for (int y = 0; y < 24; ++y) for (int x = 1; x < 24; ++x)
+            for (int c = 0; c < 3; ++c)
+                sum += std::abs(int(pixels[(y * 24 + x) * 4 + c]) -
+                                int(pixels[(y * 24 + x - 1) * 4 + c]));
+        return sum;
+    };
+    CHECK(variation(soft) < variation(sharp));
+}
+
+TEST_CASE("soft illustration filters transparent edges without dark fringes") {
+    std::vector<std::uint8_t> pixels(8 * 8 * 4, 0);
+    for (int y = 0; y < 8; ++y) for (int x = 0; x < 4; ++x) {
+        const auto i = (y * 8 + x) * 4;
+        pixels[i] = 200; pixels[i + 1] = 100;
+        pixels[i + 2] = 50; pixels[i + 3] = 255;
+    }
+    const auto out = olduvai::enhance::upscale_rgba(pixels, 8, 8, 6, "soft");
+    bool found_edge = false;
+    for (std::size_t i = 0; i < out.size(); i += 4) {
+        if (out[i + 3] > 20 && out[i + 3] < 230) {
+            found_edge = true;
+            CHECK(std::abs(int(out[i]) - 200) <= 1);
+            CHECK(std::abs(int(out[i + 1]) - 100) <= 1);
+            CHECK(std::abs(int(out[i + 2]) - 50) <= 1);
+        }
+    }
+    CHECK(found_edge);
+}
+
 TEST_CASE("profile_preserves_palette: pins per-scaler alpha treatment (A4)") {
     using olduvai::enhance::profile_preserves_palette;
     using olduvai::enhance::supported_hd_profiles;
@@ -84,7 +129,7 @@ TEST_CASE("profile_preserves_palette: pins per-scaler alpha treatment (A4)") {
     for (const char* p : {"native", "retro", "smooth", "eagle", "mmpx"})
         CHECK(profile_preserves_palette(p));
     // Blending scalers — anti-aliased alpha edge kept.
-    for (const char* p : {"omniscale", "xbrz"})
+    for (const char* p : {"omniscale", "xbrz", "soft"})
         CHECK_FALSE(profile_preserves_palette(p));
     // Unknown => false (safe default).
     CHECK_FALSE(profile_preserves_palette("bogus"));
@@ -96,7 +141,7 @@ TEST_CASE("profile_preserves_palette: pins per-scaler alpha treatment (A4)") {
     // into a gate failure instead of an eyeball catch.
     const std::vector<std::string> preserving = {"native", "retro", "smooth",
                                                  "eagle", "mmpx"};
-    const std::vector<std::string> blending = {"omniscale", "xbrz"};
+    const std::vector<std::string> blending = {"omniscale", "xbrz", "soft"};
     for (const auto& p : supported_hd_profiles()) {
         const bool in_preserving =
             std::find(preserving.begin(), preserving.end(), p) !=

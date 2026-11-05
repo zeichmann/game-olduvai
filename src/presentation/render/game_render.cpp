@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 Krzysztof Sokołowski
 #include "presentation/render/game_render.hpp"
+#include "presentation/render/player_skin.hpp"
 
 #include "presentation/render/tile_patterns.hpp"
 
@@ -329,6 +330,7 @@ static bool draw_flight_composite(RenderTarget& t,
         kSprPlayerWithBalloons < static_cast<int>(spr_mat.size())) {
         blit_sprite(t, spr_mat[kSprPlayerWithBalloons], a.palette,
                     px, py - 30);
+        draw_player_skin(t, px, py, state.player.facing_left != 0, 4);
         draw_player_halo(t, state, a, px, py);
         return true;
     }
@@ -344,6 +346,7 @@ static bool draw_flight_composite(RenderTarget& t,
             blit_sprite(t, spr_mat[kGliderChute], a.palette,
                         px + 21, py);
         }
+        draw_player_skin(t, px, py, state.player.facing_left != 0, 4);
         draw_player_halo(t, state, a, px, py);
         return true;
     }
@@ -469,8 +472,19 @@ void draw_player_overlay(RenderTarget& t, systems::SystemsState& state,
         dim_pal = dimmed_palette(a.palette, pose.dim_num);
         pal = &dim_pal;
     }
-    blit_sprite(t, spr_mat[static_cast<std::size_t>(pose.sprite)],
-                *pal, px + p.dx + pose.dx, py + p.dy, flip);
+    int skin_pose = 0;
+    if (p.death_counter > 0 || pose.sprite == kSprPlayerGhost1 ||
+        pose.sprite == kSprPlayerGhost1 + 1) skin_pose = 7;
+    else if (p.climbing != 0 || (pose.sprite >= 44 && pose.sprite <= 46)) skin_pose = 6;
+    else if (p.club_flag > 0 || pose.sprite == 4) skin_pose = 5;
+    else if (pose.sprite == 3) skin_pose = 4;
+    else if (pose.sprite == 1 || pose.sprite == 96) skin_pose = 1;
+    else if (pose.sprite == 2 || pose.sprite == 97) skin_pose = 3;
+    else if (p.walk_frame != 0 && p.walk_frame != 3) skin_pose = 2;
+    if (!draw_player_skin(t, px, py, p.facing_left != 0, skin_pose,
+                          pose.dim_num / 3.0f))
+        blit_sprite(t, spr_mat[static_cast<std::size_t>(pose.sprite)],
+                    *pal, px + p.dx + pose.dx, py + p.dy, flip);
     draw_player_halo(t, state, a, px, py);
     draw_weapon_overlay(t, state, a, px, py);
 }

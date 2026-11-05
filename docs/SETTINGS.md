@@ -44,8 +44,8 @@ the session started in.
 | Key | Values |
 |---|---|
 | `enhanced` | `true` / `false` — the Enhanced HD umbrella |
-| `hd_profile` | `native`, `retro`, `smooth`, `eagle`, `xbrz`, `mmpx`, `omniscale` (default); an old `xbr` reads as `xbrz` |
-| `render_scale` | `2` to `6` (a handheld profile picks 2 to 4 for the panel).  `5` and `6` are for a desktop 4K screen, with `xbrz` or `omniscale` only; the other upscalers stop at `4` |
+| `hd_profile` | `native`, `retro`, `smooth`, `eagle`, `xbrz`, `soft`, `mmpx`, `omniscale` (default); `soft` adds a softer finish to xBRZ; an old `xbr` reads as `xbrz` |
+| `render_scale` | `2` to `6` (a handheld profile picks 2 to 4 for the panel). `xbrz`, `soft` and `omniscale` support `5` and `6`; the other upscalers stop at `4` |
 | `aspect` | `keep`, `4:3`, `stretch`, `widescreen` |
 | `output_filter` | `nearest` (default) or `sharp`: in a window that is not a whole multiple of the picture, `sharp` keeps every pixel the same size and softens only its edges (Enhanced; Classic always scales by whole multiples). *Options → Video → Filter.* |
 | `fullscreen` | `true` / `false` (ALT+ENTER toggles) |
@@ -67,6 +67,7 @@ which one runs before you apply a change.
 | `smooth` | Scale2x | Scale3x | Scale2x, two passes | (x4) |
 | `eagle` | Eagle | Scale3x (Eagle has no 3x form) | Eagle, two passes | (x4) |
 | `xbrz` | xBRZ | xBRZ | xBRZ | xBRZ |
+| `soft` | xBRZ + soft finish | xBRZ + soft finish | xBRZ + soft finish | xBRZ + soft finish |
 | `mmpx` | MMPX | Scale3x (MMPX has no 3x form) | MMPX, two passes | (x4) |
 | `omniscale` | OmniScale | OmniScale | OmniScale | OmniScale |
 

@@ -1,5 +1,6 @@
 # build trees (every flavour lives under build/<preset>)
 build/
+dependencies/
 __pycache__/
 *.o
 *.a

@@ -3,6 +3,20 @@
 // Scale-aware sprite writers: the blit_sprite / blit_sprite_keyed overloads
 // (native loop + HD upscale-and-blit).  Declared in game_render.hpp.
 #include "presentation/render/game_render.hpp"
+#include "presentation/render/player_skin.hpp"
+#define STB_IMAGE_STATIC
+#define STB_IMAGE_IMPLEMENTATION
+#define STBI_ONLY_PNG
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#include "../../../third_party/stb/stb_image.h"
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #include "formats/hash64.hpp"
 
@@ -11,6 +25,10 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
+#include <cstdio>
+#include <map>
+#include <tuple>
 #include <vector>
 
 namespace olduvai::presentation {
@@ -176,6 +194,89 @@ void blit_hd_block(RenderTarget& t, const enhance::HdAsset& hd, float fx,
 }
 
 }  // namespace
+
+bool draw_player_skin(RenderTarget& t, float x, float y, bool left,
+                      int pose, float brightness) {
+    if (!t.hd_path()) return false;
+    struct Sheet {
+        std::vector<std::uint8_t> pixels;
+        int w = 0, h = 0;
+        std::array<DirtyRect, 8> bounds{};
+        std::map<std::tuple<int, int, bool, int>, enhance::HdAsset> scaled;
+        Sheet() {
+            const char* path = std::getenv("OLDUVAI_PLAYER_SHEET");
+            if (path == nullptr || *path == '\0') return;
+            int channels = 0;
+            auto* data = stbi_load(path, &w, &h, &channels, 4);
+            if (data == nullptr || w < 4 || h < 2 || w > 8192 || h > 8192) {
+                if (data) stbi_image_free(data);
+                std::fprintf(stderr, "player skin: cannot load %s\n", path);
+                w = h = 0;
+                return;
+            }
+            pixels.assign(data, data + static_cast<std::size_t>(w) * h * 4);
+            stbi_image_free(data);
+            for (int i = 0; i < 8; ++i) {
+                DirtyRect r{w, h, 0, 0};
+                for (int py = (i / 4) * (h / 2); py < (i / 4 + 1) * (h / 2); ++py)
+                    for (int px = (i % 4) * (w / 4); px < (i % 4 + 1) * (w / 4); ++px)
+                        if (pixels[(static_cast<std::size_t>(py) * w + px) * 4 + 3] > 24) {
+                            r.x0 = std::min(r.x0, px); r.x1 = std::max(r.x1, px + 1);
+                            r.y0 = std::min(r.y0, py); r.y1 = std::max(r.y1, py + 1);
+                        }
+                bounds[i] = r;
+            }
+            std::fprintf(stderr, "player skin: Zabol Stone Age, 8 animation poses\n");
+        }
+    };
+    static Sheet sheet;
+    if (sheet.pixels.empty()) return false;
+    pose = std::clamp(pose, 0, 7);
+    const DirtyRect& r = sheet.bounds[pose];
+    if (r.empty()) return false;
+    const int light = std::clamp(static_cast<int>(brightness * 255), 0, 255);
+    const auto id = std::make_tuple(pose, t.scale, left, light);
+    auto it = sheet.scaled.find(id);
+    if (it == sheet.scaled.end()) {
+        enhance::HdAsset asset;
+        const int reference_height = std::max(1, sheet.bounds[0].y1 - sheet.bounds[0].y0);
+        asset.h = std::max(1, 32 * t.scale * (r.y1 - r.y0) / reference_height);
+        asset.w = std::max(1, 32 * t.scale * (r.x1 - r.x0) / reference_height);
+        asset.px.resize(static_cast<std::size_t>(asset.w) * asset.h * 4);
+        for (int py = 0; py < asset.h; ++py) {
+            for (int px = 0; px < asset.w; ++px) {
+                const double u = left ? asset.w - 1 - px : px;
+                const double sx = r.x0 + (u + 0.5) * (r.x1 - r.x0) / asset.w - 0.5;
+                const double sy = r.y0 + (py + 0.5) * (r.y1 - r.y0) / asset.h - 0.5;
+                const int x0 = std::clamp(static_cast<int>(std::floor(sx)), r.x0, r.x1 - 1);
+                const int y0 = std::clamp(static_cast<int>(std::floor(sy)), r.y0, r.y1 - 1);
+                const float wx = static_cast<float>(sx - std::floor(sx));
+                const float wy = static_cast<float>(sy - std::floor(sy));
+                float rgba[4]{};
+                for (int j = 0; j < 2; ++j) for (int k = 0; k < 2; ++k) {
+                    const auto off = (static_cast<std::size_t>(std::min(y0 + j, r.y1 - 1)) *
+                                     sheet.w + std::min(x0 + k, r.x1 - 1)) * 4;
+                    const float weight = (k ? wx : 1 - wx) * (j ? wy : 1 - wy);
+                    const float alpha = sheet.pixels[off + 3] / 255.0f;
+                    for (int c = 0; c < 3; ++c) rgba[c] += sheet.pixels[off + c] * alpha * weight;
+                    rgba[3] += sheet.pixels[off + 3] * weight;
+                }
+                const auto dst = (static_cast<std::size_t>(py) * asset.w + px) * 4;
+                for (int c = 0; c < 3; ++c)
+                    asset.px[dst + c] = static_cast<std::uint8_t>(std::clamp(
+                        rgba[3] > 0 ? rgba[c] * light / rgba[3] : 0.0f, 0.0f, 255.0f));
+                asset.px[dst + 3] = static_cast<std::uint8_t>(std::clamp(rgba[3], 0.0f, 255.0f));
+            }
+        }
+        it = sheet.scaled.emplace(id, std::move(asset)).first;
+    }
+    // Physics uses a 32x30 body: centre the new art over the same feet.
+    const auto key = UINT64_C(0x5a41424f4c000000) +
+        static_cast<std::uint64_t>(pose * 4096 + t.scale * 512 + (left ? 256 : 0) + light);
+    blit_hd_block(t, it->second, x + 16 - it->second.w / (2.0f * t.scale),
+                  y + 30 - it->second.h / static_cast<float>(t.scale), key);
+    return true;
+}
 
 void indexed_to_rgba(const std::vector<std::uint8_t>& pixels,
                      const std::vector<formats::Rgb>& pal, std::uint8_t* out,

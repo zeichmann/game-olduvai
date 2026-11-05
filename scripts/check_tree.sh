@@ -41,9 +41,10 @@ fi
 # photograph, so the rest of the curation is a human job.
 media_re='\.(png|jpg|jpeg|gif|bmp|webp|icns|ico|ttf|otf|woff2?|mp4|m4v|mov|webm|mkv|avi)$'
 if git ls-files | grep -iE "$media_re" \
+        | grep -vE '^mods/zabol/stone-age-sprites\.png$' \
         | grep -vE '^assets/(icon|logo|fonts)/[^/]+\.(png|icns|ico|ttf)$' \
         | grep -vE '^assets/screenshots/[a-z0-9-]+\.(png|jpg|mp4)$'; then
-    echo "check_tree: images/video only under assets/{icon,logo,fonts,screenshots}" \
+    echo "check_tree: images/video only under assets/{icon,logo,fonts,screenshots} or the authored Zabol sprite sheet" \
          "(screenshots: lower-case-hyphen names, .png/.jpg/.mp4)." >&2
     fail=1
 fi

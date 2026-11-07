@@ -26,3 +26,41 @@ The soft profile uses xBRZ followed by a cached premultiplied-alpha soft finish.
 Physics, hitboxes and level data are unchanged.
 
 The repository-portable equivalent is mods/zabol/launch.cmd.
+
+Version 2: stone-age-sprites-v2.png (built-in image_gen).
+Prompt: preserve Zabol's identity; add a rust-red cloth bandana in every frame
+and a chunky wooden club carried in idle, running and jump poses. Matte painted
+storybook shading, muted olive/ochre, soft edges, no plastic gloss. Transparent
+4-column by 5-row sheet: idle/open, half-closed eyes, closed eyes, recovery;
+eight consecutive natural running phases across rows 2 and 3; jump, attack,
+hurt, breathing in row 4; four alternating rear-view ladder climbing phases
+in row 5 with the club strapped to his back. Constant character size and foot
+baseline, no ladder, no background, no captions or grid lines.
+V2 uses distance-driven run/climb sampling and timed idle blinking. Runtime
+desaturation and alpha-aware soft reconstruction match the character to the
+environment. Original V1 sheet is retained as a reference.
+
+Revision 3: the launchers now use xBRZ without the soft/blur profile.
+The character reconstruction blur has been removed. Running uses V2's stable
+torso with two independently articulated legs and inverse-kinematics knees.
+The 32-phase gait has alternate support feet; during stance each foot's backward
+motion cancels body travel. Phase advances from authoritative physics positions,
+with interpolation used only for rendering, rather than counting render passes.
+The generated V2 run silhouettes are no longer used for locomotion. Bandana,
+carried club, blink, jump/attack and rear-view ladder poses remain in use.
+
+Revision 4 supersedes revision 3. The procedural lower-body/IK renderer was
+removed. Ground movement now renders the complete original body sprite for
+each original physics animation frame, retaining its pelvis, shoulder, arm
+and leg movement and frame offsets. Its skin palette is retinted olive green.
+A separate bandana frog head follows that frame's head silhouette. The club
+is carried in the leading hand at 55 percent of its attack-sprite size, with
+the handle attached to the palm in each body frame and the head facing outwards.
+The original full-size attack frames are preserved during an actual swing.
+Back-facing V2 climbing poses are retained. No image blur is applied.
+
+stone-age-head.png was generated with built-in image_gen, referencing V2:
+head-only atlas, 2 columns x 2 rows; Zabol's green skin, brown eyes, pale-yellow
+muzzle and rust-red bandana. Open, half-closed and closed eyelids facing right,
+plus a back view. Consistent scale, clean silhouette, crisp painted shading,
+transparent background, no body/arms/weapons/text/glow/blur.

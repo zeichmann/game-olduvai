@@ -4,6 +4,36 @@
 
 #include "presentation/render/game_render.hpp"
 #include "systems/player.hpp"
+#include "presentation/render/skin_animation.hpp"
+
+TEST_CASE("Zabol animation uses eight distance-driven run frames") {
+    olduvai::presentation::SkinAnimation a;
+    CHECK(a.sample(0, 0, 0, 0) == 0);
+    for (int i = 1; i <= 8; ++i)
+        CHECK(a.sample(static_cast<float>(i * 5), 0, 1, i * 0.05) == 4 + i % 8);
+    CHECK(a.sample(40, 0, 1, 1.0) == 0); // no running in place
+    CHECK(a.sample(40, 0, 1, 1.0) == 0); // repeated render is stable
+}
+
+TEST_CASE("Zabol ladder frames follow vertical travel and freeze on a rung") {
+    olduvai::presentation::SkinAnimation a;
+    CHECK(a.sample(20, 0, 6, 0) == 16);
+    for (int i = 1; i <= 4; ++i)
+        CHECK(a.sample(20, static_cast<float>(i * 3), 6, i * 0.1) == 16 + i % 4);
+    CHECK(a.sample(20, 12, 6, 10) == 16);
+}
+
+TEST_CASE("Zabol has distinct eyelids and action poses") {
+    olduvai::presentation::SkinAnimation a;
+    CHECK(a.sample(0, 0, 0, 3.99) == 1);
+    CHECK(a.sample(0, 0, 0, 4.05) == 2);
+    CHECK(a.sample(0, 0, 0, 4.12) == 1);
+    CHECK(a.sample(0, 0, 0, 4.18) == 0);
+    CHECK(a.sample(0, 0, 4, 5) == 12);
+    CHECK(a.sample(0, 0, 5, 5) == 13);
+    CHECK(a.sample(0, 0, 7, 5) == 14);
+}
+
 
 #include <cstdint>
 #include <string>

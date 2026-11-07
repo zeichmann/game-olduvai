@@ -1,7 +1,8 @@
 # Żabol: Stone Age — an Olduvai mod
 
-This fork adds Akademia Oli's Żabol as an animated Stone Age hero and a softer
-`soft` HD graphics profile. The engine is based on
+This fork adds Akademia Oli's Żabol as an animated Stone Age hero with a bandana,
+blinking eyes and a carried club. The launcher uses sharp `xbrz` HD graphics.
+The engine is based on
 [Krzysztof Sokołowski's Olduvai](https://github.com/ksokolowski/olduvai).
 
 After building, Windows users can run `mods/zabol/launch.cmd`.

@@ -10,6 +10,7 @@
 #include <cmath>
 #include <cstring>
 #include <deque>
+#include <cstdlib>
 
 #include "core/game_tables.hpp"
 #include "enhance/upscale.hpp"
@@ -404,7 +405,7 @@ static std::vector<formats::Rgb> dimmed_palette(
 // death/cave-warp clear and the decrement only when t.advance_state.
 static void draw_weapon_overlay(RenderTarget& t, systems::SystemsState& state,
                                 const LevelRenderAssets& a,
-                                float px, float py) {
+                                float px, float py, bool show_weapon = true) {
     const auto& spr_mat = a.entity_sprites;
     systems::PlayerState& p = state.player;
     if (p.death_counter != 0 || p.cave_warp_freeze != 0) {
@@ -414,7 +415,7 @@ static void draw_weapon_overlay(RenderTarget& t, systems::SystemsState& state,
         const auto& f = tbl[static_cast<std::size_t>(2 - p.club_flag)];
         int wdx = f.dx;
         if (p.facing_left) wdx = -wdx;
-        if (f.spr < static_cast<int>(spr_mat.size())) {
+        if (show_weapon && f.spr < static_cast<int>(spr_mat.size())) {
             blit_sprite(t, spr_mat[static_cast<std::size_t>(f.spr)],
                         a.palette, px + wdx, py + f.dy,
                         p.facing_left != 0);
@@ -481,12 +482,18 @@ void draw_player_overlay(RenderTarget& t, systems::SystemsState& state,
     else if (pose.sprite == 1 || pose.sprite == 96) skin_pose = 1;
     else if (pose.sprite == 2 || pose.sprite == 97) skin_pose = 3;
     else if (p.walk_frame != 0 && p.walk_frame != 3) skin_pose = 2;
-    if (!draw_player_skin(t, px, py, p.facing_left != 0, skin_pose,
-                          pose.dim_num / 3.0f))
+    const bool native_frog = skin_pose != 6 && skin_pose != 7 &&
+        draw_frog_character(t, spr_mat[static_cast<std::size_t>(pose.sprite)], *pal,
+                            px + p.dx + pose.dx, py + p.dy, flip, pose.dim_num / 3.0f,
+                            p.club_flag == 0 && spr_mat.size() > 13 ? &spr_mat[13] : nullptr);
+    const bool custom_skin = native_frog || draw_player_skin(t, px, py, p.facing_left != 0, skin_pose,
+                                              pose.dim_num / 3.0f,
+                                              static_cast<float>(p.x), static_cast<float>(p.y));
+    if (!custom_skin)
         blit_sprite(t, spr_mat[static_cast<std::size_t>(pose.sprite)],
                     *pal, px + p.dx + pose.dx, py + p.dy, flip);
     draw_player_halo(t, state, a, px, py);
-    draw_weapon_overlay(t, state, a, px, py);
+    draw_weapon_overlay(t, state, a, px, py, native_frog || !custom_skin);
 }
 
 void draw_entities(RenderTarget& t, systems::SystemsState& state,

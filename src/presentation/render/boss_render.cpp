@@ -50,12 +50,18 @@ void render_boss_player_fb(RenderTarget& t, const BossPlayerState& p,
     // player blits add integer offsets to it.
     const float ppx = t.use_float_pos ? t.player_fx : static_cast<float>(p.x);
     const float ppy = t.use_float_pos ? t.player_fy : static_cast<float>(p.y);
+    bool custom_skin = false;
     if (p.sprite >= 0 && p.sprite < static_cast<int>(atlas.size())) {
         const bool flip = p.death_counter > 0 ? false : p.facing_left;
         const int skin_pose = p.death_counter > 0 ? 7 :
                               p.club_spr >= 0 ? 5 : p.sprite == 3 ? 4 :
                               p.sprite == 28 ? 0 : 1 + (p.sprite % 3);
-        if (!draw_player_skin(t, ppx, ppy, p.facing_left, skin_pose))
+        const bool native_frog = p.death_counter == 0 &&
+            draw_frog_character(t, atlas[static_cast<std::size_t>(p.sprite)], player_pal,
+                                ppx + p.sprite_dx, ppy + p.sprite_dy, flip);
+        custom_skin = native_frog || draw_player_skin(t, ppx, ppy, p.facing_left, skin_pose, 1.0f,
+                                       static_cast<float>(p.x), static_cast<float>(p.y));
+        if (!custom_skin)
             blit_sprite(t, atlas[static_cast<std::size_t>(p.sprite)],
                         p.halo_flag > 0 ? halo_pal : player_pal,
                         ppx + p.sprite_dx, ppy + p.sprite_dy, flip);
